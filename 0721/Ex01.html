@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이미지검색</title>
+    <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/3.0.1/handlebars.js"></script>
+    <!-- bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz"
+        crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+    <div class="row my-5">
+        <div class="col">
+            <h1 class="text-center mb-5">이미지검색</h1>
+            <div class="row justify-content-end">
+                <form name="frm" class="col-6 col-md-3 me-5 mb-3">
+                    <div class="input-group">
+                        <input name="query" value="카리나" class="form-control">
+                        <button class="btn btn-primary">검색</button>
+                    </div>
+                </form>
+            </div>
+            <div id="div_image" class="row mx-5"></div>
+            <div class="text-center mt-3">
+                <button id="prev" class="btn btn-primary px-3">이전</button>
+                <span id="page" class="mx-3">1/100</span>
+                <button id="next" class="btn btn-primary px-3">다음</button>
+            </div>
+        </div>
+    </div>
+</body>
+<!-- 이미지 목록에 대한 템플릿 -->
+<script id="temp_image" type="text/x-handlebars-template">
+    {{#each documents}}
+        <div class="col-6 col-md-2  mb-3">
+            <div class="card p-3">
+            <img index="{{@index}}" src="{{thumbnail_url}}" width="100%">
+            <a href="{{doc_url}}">
+            <h5>{{display_sitename}}</h5>
+         </a>
+            </div>
+        </div>
+        <!-- Modal -->
+        <div class="modal fade" id="modal_image{{@index}}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                <h1 class="modal-title fs-5" id="staticBackdropLabel">{{display_sitename}}</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="card">
+                        <img src="{{image_url}}" width="100%">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+            </div>
+        </div>
+    {{/each}}
+</script>
+<script>
+    let query=$(frm.query).val();
+    let page=1;
+    getList();
+
+    $("#div_image").on("click", "img", function(){
+        const index=$(this).attr("index");
+        $("#modal_image" + index).modal("show");
+    })
+    $("#next").on("click", function(){
+        page++;
+        getList();
+    });
+    $("#prev").on("click", function(){
+        page--;
+        getList();
+    });
+    $(frm).on("submit", function(e){
+        e.preventDefault();
+        query=$(frm.query).val();
+        getList();
+    })
+    function getList(){ 
+    $.ajax({
+        type:"get",
+        url:"https://dapi.kakao.com/v2/search/image",
+        dataType:"json",
+        headers:{"Authorization":"KakaoAK f516bd0c7aaa3a6e534b343861f7e734"},
+        data:{query:query, size:12, page:page},
+        success:function(data){
+            console.log(data);
+            const temp=Handlebars.compile($("#temp_image").html())
+            const html=temp(data);
+            $("#div_image").html(html);
+            $("#total").html(data.meta.pageable_count);
+
+            if(page==1) $("#prev").attr("disabled", true)
+            else $("#prev").attr("disabled", false)
+            if(data.meta.is_end) $("#next").attr("disabled", true)
+            else $("#next").attr("disabled", false)
+
+            const last=Math.ceil(data.meta.pageable_count/12)
+            $("#page").html(page + "/" + last);
+
+        }
+    });
+}
+</script>
+</html>
